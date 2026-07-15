@@ -1,0 +1,984 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NU Carnival 角色潜力升级材料计算器</title>
+<style>
+:root {
+  --blue: #3B82F6;
+  --blue-light: #EFF6FF;
+  --blue-dark: #1D4ED8;
+  --red: #DC2626;
+  --red-bg: #FEE2E2;
+  --green: #16A34A;
+  --green-bg: #D1FAE5;
+  --gray: #6B7280;
+  --gray-light: #F3F4F6;
+  --gray-border: #E5E7EB;
+  --radius: 12px;
+  --radius-sm: 8px;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", "Hiragino Sans GB", sans-serif;
+  background: #F0F4F8;
+  color: #1F2937;
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+.app-container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+/* Header */
+.header {
+  background: linear-gradient(135deg, #1E3A5F, #2563EB);
+  color: white;
+  text-align: center;
+  padding: 28px 20px;
+  border-radius: var(--radius);
+  margin-bottom: 16px;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+}
+.header h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 4px; }
+.header p { font-size: 0.85rem; opacity: 0.85; }
+
+/* Cards */
+.card {
+  background: white;
+  border-radius: var(--radius);
+  padding: 20px;
+  margin-bottom: 14px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  border: 1px solid var(--gray-border);
+}
+.card-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #1E3A5F;
+  margin-bottom: 14px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid var(--blue-light);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.card-title .icon {
+  width: 28px; height: 28px;
+  background: var(--blue);
+  color: white;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+/* Material category groups */
+.material-group {
+  margin-bottom: 12px;
+  border: 1px solid var(--gray-border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+.material-group-header {
+  background: var(--gray-light);
+  padding: 10px 14px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #374151;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  user-select: none;
+  transition: background 0.15s;
+}
+.material-group-header:hover { background: #E5E7EB; }
+.material-group-header .arrow {
+  font-size: 0.7rem;
+  transition: transform 0.2s;
+  color: #9CA3AF;
+}
+.material-group-header.collapsed .arrow { transform: rotate(-90deg); }
+.material-group-body {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  padding: 10px 14px;
+}
+.material-group-body.collapsed { display: none; }
+@media (min-width: 700px) {
+  .material-group-body { grid-template-columns: 1fr 1fr 1fr; }
+}
+
+.material-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 0;
+  border-bottom: 1px solid #F3F4F6;
+}
+.material-item:last-child { border-bottom: none; }
+.material-item label {
+  font-size: 0.82rem;
+  color: #374151;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+  min-width: 0;
+}
+.material-item input {
+  width: 62px;
+  padding: 5px 8px;
+  border: 1px solid var(--gray-border);
+  border-radius: 6px;
+  font-size: 0.85rem;
+  text-align: center;
+  flex-shrink: 0;
+  transition: border-color 0.15s;
+}
+.material-item input:focus {
+  outline: none;
+  border-color: var(--blue);
+  box-shadow: 0 0 0 2px rgba(59,130,246,0.15);
+}
+
+/* Buttons */
+.btn-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+.btn {
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: none;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: inherit;
+}
+.btn-blue { background: var(--blue); color: white; }
+.btn-blue:hover { background: var(--blue-dark); }
+.btn-outline { background: white; color: var(--blue); border: 1px solid var(--blue); }
+.btn-outline:hover { background: var(--blue-light); }
+.btn-ghost { background: transparent; color: var(--gray); }
+.btn-ghost:hover { background: var(--gray-light); }
+
+/* Type tip box */
+.type-tip {
+  background: #2563EB;
+  color: white;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 0.82rem;
+  line-height: 1.6;
+  margin-bottom: 14px;
+}
+.type-selector { display: flex; gap: 8px; flex-wrap: wrap; }
+.type-btn {
+  flex: 1;
+  min-width: 100px;
+  padding: 12px 10px;
+  border: 2px solid var(--gray-border);
+  border-radius: var(--radius-sm);
+  background: white;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.15s;
+  font-family: inherit;
+  color: #374151;
+}
+.type-btn:hover { border-color: var(--blue); background: var(--blue-light); }
+.type-btn.active { border-color: var(--blue); background: var(--blue-light); color: var(--blue); }
+
+/* Stage slider */
+.stage-selector { margin-top: 14px; }
+.stage-selector label { font-size: 0.9rem; font-weight: 600; color: #374151; display: block; margin-bottom: 8px; }
+.stage-slider-wrapper { display: flex; align-items: center; gap: 10px; }
+.slider-track-wrap { flex: 1; position: relative; padding-top: 22px; }
+.stage-slider-wrapper input[type="range"] { width: 100%; accent-color: var(--blue); height: 6px; margin: 0; }
+.slider-bubble {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  background: var(--blue);
+  color: white;
+  min-width: 32px;
+  height: 24px;
+  line-height: 24px;
+  text-align: center;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0 6px;
+  white-space: nowrap;
+  pointer-events: none;
+  transition: left 0.05s linear;
+}
+.slider-bubble::after {
+  content: '';
+  position: absolute;
+  bottom: -5px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 5px solid var(--blue);
+}
+#stage-input {
+  width: 52px;
+  padding: 5px 4px;
+  border: 1px solid var(--gray-border);
+  border-radius: 6px;
+  font-size: 0.85rem;
+  text-align: center;
+  font-family: inherit;
+  min-height: 36px;
+  flex-shrink: 0;
+}
+#stage-input:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 2px rgba(59,130,246,0.15); }
+
+/* Results table */
+.result-table-wrapper { overflow-x: visible; margin: 0; padding: 0; }
+.result-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; table-layout: fixed; }
+.result-table th {
+  background: var(--gray-light);
+  padding: 9px 4px;
+  text-align: center;
+  font-weight: 600;
+  color: #374151;
+  font-size: 0.76rem;
+  white-space: nowrap;
+}
+.result-table th:first-child { text-align: left; border-radius: var(--radius-sm) 0 0 0; }
+.result-table th:last-child { border-radius: 0 var(--radius-sm) 0 0; }
+.result-table td {
+  padding: 7px 4px;
+  text-align: center;
+  border-bottom: 1px solid var(--gray-border);
+  transition: background 0.15s;
+}
+.result-table td:first-child { text-align: left; font-weight: 500; }
+.result-table tr.row-surplus td { background: var(--green-bg); }
+.result-table tr.row-deficit td { background: var(--red-bg); }
+.result-table tr.row-zero td { color: #9CA3AF; }
+.result-table .diff-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+.diff-badge.surplus { background: #BBF7D0; color: var(--green); }
+.diff-badge.deficit { background: #FECACA; color: var(--red); }
+.diff-badge.zero { background: #E5E7EB; color: #9CA3AF; }
+/* Column widths: name gets more space, number columns are compact */
+.result-table .col-name { width: auto; }
+.result-table .col-need { width: 15%; }
+.result-table .col-have { width: 15%; }
+.result-table .col-diff { width: 28%; }
+
+/* Convert button area */
+.convert-section { text-align: center; margin: 20px 0; }
+.btn-convert {
+  padding: 14px 36px;
+  font-size: 1rem;
+  font-weight: 700;
+  border-radius: 28px;
+  border: none;
+  background: linear-gradient(135deg, #DC2626, #EF4444);
+  color: white;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(220,38,38,0.3);
+  transition: all 0.2s;
+  font-family: inherit;
+}
+.btn-convert:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(220,38,38,0.4); }
+.btn-convert:active { transform: translateY(0); }
+.btn-convert:disabled { background: #D1D5DB; box-shadow: none; cursor: not-allowed; transform: none; }
+
+/* Empty state */
+.empty-state { text-align: center; padding: 30px; color: #9CA3AF; }
+.empty-state .emoji { font-size: 2.5rem; margin-bottom: 8px; }
+
+/* Convert result */
+.convert-result-item {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  gap: 10px;
+  border-bottom: 1px solid var(--gray-border);
+}
+.convert-result-item:last-child { border-bottom: none; }
+.convert-result-item .mat-name { flex: 1; font-weight: 500; }
+.convert-result-item .mat-count {
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: var(--red);
+}
+.convert-note {
+  margin-top: 12px;
+  padding: 10px 14px;
+  background: #FFF7ED;
+  border-radius: var(--radius-sm);
+  font-size: 0.82rem;
+  color: #C2410C;
+  border: 1px solid #FED7AA;
+}
+
+/* Footer */
+.footer { text-align: center; padding: 16px; color: #9CA3AF; font-size: 0.78rem; }
+
+/* ============ RESPONSIVE ============ */
+@media (max-width: 600px) {
+  .app-container { padding: 10px; }
+
+  .header { padding: 20px 16px; margin-bottom: 10px; border-radius: 10px; }
+  .header h1 { font-size: 1.2rem; }
+
+  .card { padding: 14px 12px; margin-bottom: 10px; border-radius: 10px; }
+  .card-title { font-size: 0.95rem; margin-bottom: 10px; padding-bottom: 8px; }
+  .card-title .icon { width: 24px; height: 24px; font-size: 0.75rem; border-radius: 5px; }
+
+  /* Material groups: single column on mobile for readability */
+  .material-group-body { grid-template-columns: 1fr; gap: 0; padding: 4px 10px; }
+  .material-group-header { padding: 10px 12px; font-size: 0.85rem; }
+
+  .material-item { padding: 8px 0; }
+  .material-item label { font-size: 0.85rem; }
+  .material-item input {
+    width: 56px; padding: 6px 4px; font-size: 0.9rem;
+    min-height: 36px; /* larger touch target */
+  }
+
+  /* Type buttons: stack vertically on narrow screens */
+  .type-selector { flex-direction: column; gap: 6px; }
+  .type-btn { padding: 14px 12px; font-size: 0.9rem; min-width: unset; }
+
+  /* Stage slider */
+  .stage-slider-wrapper { gap: 6px; }
+  .stage-slider-wrapper input[type="range"] { height: 8px; }
+  .slider-bubble { min-width: 28px; height: 22px; line-height: 22px; font-size: 0.7rem; }
+  #stage-input { width: 44px; font-size: 0.8rem; }
+
+  /* Result table: ultra-compact for mobile */
+  .result-table { font-size: 0.76rem; }
+  .result-table th { padding: 6px 2px; font-size: 0.68rem; }
+  .result-table td { padding: 6px 2px; }
+  .result-table .col-need, .result-table .col-have { width: 13%; }
+  .result-table .col-diff { width: 26%; }
+  .result-table .diff-badge { padding: 1px 6px; font-size: 0.72rem; border-radius: 8px; }
+
+  /* Convert button */
+  .btn-convert { padding: 14px 24px; font-size: 0.9rem; width: 100%; max-width: 320px; }
+
+  /* Convert results */
+  .convert-result-item { padding: 10px 8px; }
+  .convert-result-item .mat-count { font-size: 1rem; }
+
+  /* Buttons row */
+  .btn-row { gap: 6px; }
+  .btn { padding: 8px 12px; font-size: 0.8rem; }
+
+  .empty-state { padding: 24px 12px; }
+  .empty-state .emoji { font-size: 2rem; }
+  .convert-note { font-size: 0.78rem; padding: 8px 10px; }
+}
+
+@media (max-width: 380px) {
+  .header h1 { font-size: 1.1rem; }
+  .header { padding: 16px 12px; }
+  .card { padding: 12px 10px; }
+  .card-title { font-size: 0.9rem; }
+
+  .material-item label { font-size: 0.8rem; }
+  .material-item input { width: 48px; font-size: 0.85rem; }
+
+  .result-table { font-size: 0.7rem; }
+  .result-table th { padding: 5px 1px; font-size: 0.64rem; }
+  .result-table td { padding: 5px 1px; }
+  .result-table .col-need, .result-table .col-have { width: 12%; }
+  .result-table .col-diff { width: 24%; }
+  .result-table .diff-badge { padding: 1px 5px; font-size: 0.68rem; }
+
+  .type-btn { padding: 12px 10px; font-size: 0.85rem; }
+  .btn-convert { font-size: 0.85rem; padding: 12px 20px; }
+}
+</style>
+</head>
+<body>
+
+<div class="app-container">
+
+  <!-- Header -->
+  <div class="header">
+    <h1>🔮 NU Carnival 角色潜力升级材料计算器</h1>
+    <p style="font-size:0.8rem;opacity:0.8;margin-top:6px;">⚠️ 本计算器只能计算SSR和SR，R卡和N卡不在范围内</p>
+  </div>
+
+  <!-- 板块一：仓库库存 -->
+  <div class="card" id="panel1">
+    <div class="card-title"><span class="icon">一</span> 仓库材料库存</div>
+    <p style="font-size:0.82rem;color:#6B7280;margin-bottom:12px;">请填写你仓库中已有的材料数量，数据会自动保存</p>
+    <div id="warehouse-groups"></div>
+    <div class="btn-row">
+      <button class="btn btn-outline" onclick="expandAll()">展开全部</button>
+      <button class="btn btn-outline" onclick="collapseAll()">折叠全部</button>
+      <button class="btn btn-ghost" onclick="clearWarehouse()">清空仓库</button>
+    </div>
+  </div>
+
+  <!-- 板块二：角色选择 -->
+  <div class="card" id="panel2">
+    <div class="card-title"><span class="icon">二</span> 选择养成目标</div>
+    <div class="type-tip">
+      💡 <strong>如何分辨角色类型：</strong>角色1级潜力时，需要解锁的格子HP比ATK多，为HP优先；ATK比HP多则为ATK优先；全部格子都是ATK则是综合（平均）型。
+    </div>
+    <div class="type-selector" id="type-selector"></div>
+    <div class="stage-selector">
+      <label>需要达到的潜力等级：<strong id="stage-label">2级潜力</strong></label>
+      <div class="stage-slider-wrapper">
+        <span style="font-size:0.8rem;color:#9CA3AF;">2</span>
+        <div class="slider-track-wrap">
+          <span class="slider-bubble" id="slider-bubble">2</span>
+          <input type="range" id="stage-slider" min="2" max="13" value="2" oninput="onSliderDrag(this.value)" onchange="updateStage(this.value)">
+        </div>
+        <span style="font-size:0.8rem;color:#9CA3AF;">max</span>
+        <input type="number" id="stage-input" min="2" max="13" value="2" onchange="onStageInput(this.value)" placeholder="2-13">
+      </div>
+    </div>
+  </div>
+
+  <!-- 板块三：计算结果 -->
+  <div class="card" id="panel3">
+    <div class="card-title"><span class="icon">三</span> 材料需求计算结果</div>
+    <div id="result-area">
+      <div class="empty-state"><div class="emoji">📋</div><p>请先选择角色类型，结果将在此显示</p></div>
+    </div>
+  </div>
+
+  <!-- 一键转换 -->
+  <div class="convert-section" id="convert-section" style="display:none;">
+    <button class="btn-convert" id="btn-convert" onclick="doConvert()">
+      ⚡ 一键转换：缺少的材料 → 初级材料需求量
+    </button>
+  </div>
+
+  <!-- 板块四：转换结果 -->
+  <div class="card" id="panel4" style="display:none;">
+    <div class="card-title"><span class="icon">四</span> 初级材料刷取清单</div>
+    <div id="convert-result-area"></div>
+  </div>
+
+  <div class="footer">
+    NU Carnival 角色养成材料计算器 · 数据仅供参考 · 游戏内容以官方为准
+  </div>
+
+</div>
+
+<script>
+// ============ DATA ============
+
+// Normalize material name variations
+function normalizeName(name) {
+  const map = {
+    '夜之晶族': '夜之晶簇',
+    '湿沌之晶簇': '混沌之晶簇',
+    '混沌之晶族': '混沌之晶簇',
+  };
+  return map[name] || name;
+}
+
+// Stage requirements per character type
+const stagesData = {
+  hp: [
+    {"猛禽之爪":3,"松树木材":7,"星之实":7,"毒之晶簇":3},
+    {"猛禽之爪":4,"松树木材":10,"星之实":10,"毒之晶簇":4},
+    {"兽王之爪":4,"古树木材":4,"月之实":4,"夜之晶簇":4},
+    {"兽王之爪":4,"古树木材":9,"月之实":9,"夜之晶簇":4},
+    {"兽王之爪":3,"古树木材":12,"月之实":12,"夜之晶簇":3,"魔兽之爪":1,"混沌之晶簇":1},
+    {"魔兽之爪":5,"圣树木材":8,"阳之实":8,"混沌之晶簇":5,"晶花原石":1},
+    {"魔兽之爪":9,"圣树木材":8,"阳之实":8,"混沌之晶簇":9},
+    {"魔兽之爪":9,"圣树木材":8,"阳之实":8,"混沌之晶簇":9},
+    {"白幻鹿角":10,"羽髓晶翅":10,"迷幻金粉":10,"异变獠牙":10},
+    {"占卜钳":10,"灰狼毛皮":12,"双头尾羽":12,"蜘蛛黏丝":10},
+    {"独角兽角":4,"狮鹫之翼":2,"炙热晶矿":2,"神象牙骨":4},
+    {"烈阳之钳":4,"魔熊棕皮":1,"不死鸟尾羽":1,"纯金细丝":4,"晶花原石":2}
+  ],
+  atk: [
+    {"猛禽之爪":7,"松树木材":3,"星之实":3,"毒之晶簇":7},
+    {"猛禽之爪":10,"松树木材":4,"星之实":4,"毒之晶簇":10},
+    {"兽王之爪":4,"古树木材":4,"月之实":4,"夜之晶簇":4},
+    {"兽王之爪":9,"古树木材":4,"月之实":4,"夜之晶簇":9},
+    {"兽王之爪":12,"古树木材":3,"月之实":3,"夜之晶簇":12,"圣树木材":1,"阳之实":1},
+    {"魔兽之爪":8,"圣树木材":5,"阳之实":5,"混沌之晶簇":8,"晶花原石":1},
+    {"魔兽之爪":8,"圣树木材":9,"阳之实":9,"混沌之晶簇":8},
+    {"魔兽之爪":8,"圣树木材":9,"阳之实":9,"混沌之晶簇":8},
+    {"白幻鹿角":10,"羽髓晶翅":10,"异变獠牙":10},
+    {"占卜钳":12,"灰狼毛皮":10,"双头尾羽":10,"蜘蛛黏丝":12},
+    {"独角兽角":2,"狮鹫之翼":4,"炙热晶矿":4,"神象牙骨":2},
+    {"烈阳之钳":1,"魔熊棕皮":4,"不死鸟尾羽":4,"纯金细丝":1,"晶花原石":2}
+  ],
+  bal: [
+    {"猛禽之爪":12,"清晨露水":12},
+    {"松树木材":12,"清晨露水":12},
+    {"兽王之爪":5,"古树木材":4,"玫瑰纯露":9},
+    {"兽王之爪":12,"古树木材":3,"玫瑰纯露":15},
+    {"古树木材":12,"玫瑰纯露":12,"精灵纯露":3,"混沌之晶簇":3},
+    {"精灵纯露":11,"阳之实":7,"混沌之晶簇":1,"晶花原石":1},
+    {"精灵纯露":16,"阳之实":8,"混沌之晶簇":8},
+    {"精灵纯露":18,"阳之实":9,"混沌之晶簇":9},
+    {"白幻鹿角":10,"羽髓晶翅":10,"茉莉精油":20},
+    {"迷途之书":22,"双头尾羽":11,"蜘蛛黏丝":11},
+    {"独角兽角":3,"狮鹫之翼":3,"圣树精油":6},
+    {"卡莱茵圣典":5,"不死鸟尾羽":2,"纯金细丝":3,"晶花原石":2}
+  ]
+};
+
+// Synthesis recipes (all use normalized names)
+const recipes = {
+  "兽王之爪": {"猛禽之爪": 6},
+  "古树木材": {"松树木材": 6},
+  "月之实": {"星之实": 6},
+  "夜之晶簇": {"毒之晶簇": 6},
+  "玫瑰纯露": {"清晨露水": 6},
+  "魔兽之爪": {"兽王之爪": 3},
+  "圣树木材": {"古树木材": 3},
+  "阳之实": {"月之实": 3},
+  "混沌之晶簇": {"夜之晶簇": 3},
+  "精灵纯露": {"玫瑰纯露": 3},
+  "白幻鹿角": {"兽王之爪": 4, "毒之晶簇": 4},
+  "羽髓晶翅": {"古树木材": 4, "清晨露水": 4},
+  "迷幻金粉": {"夜之晶簇": 4, "猛禽之爪": 4},
+  "异变獠牙": {"兽王之爪": 4, "清晨露水": 4},
+  "茉莉精油": {"玫瑰纯露": 4, "星之实": 4},
+  "占卜钳": {"古树木材": 4, "毒之晶簇": 4},
+  "灰狼毛皮": {"月之实": 4, "松树木材": 4},
+  "双头尾羽": {"月之实": 4, "星之实": 4},
+  "蜘蛛黏丝": {"玫瑰纯露": 4, "松树木材": 4},
+  "迷途之书": {"夜之晶簇": 4, "猛禽之爪": 4},
+  "独角兽角": {"白幻鹿角": 2, "夜之晶簇": 3},
+  "狮鹫之翼": {"羽髓晶翅": 2, "月之实": 3},
+  "炙热晶矿": {"迷幻金粉": 2, "玫瑰纯露": 3},
+  "神象牙骨": {"异变獠牙": 2, "月之实": 3},
+  "圣树精油": {"茉莉精油": 2, "夜之晶簇": 3},
+  "烈阳之钳": {"占卜钳": 2, "兽王之爪": 3},
+  "魔熊棕皮": {"灰狼毛皮": 2, "兽王之爪": 3},
+  "不死鸟尾羽": {"双头尾羽": 2, "玫瑰纯露": 3},
+  "纯金细丝": {"蜘蛛黏丝": 2, "古树木材": 3},
+  "卡莱茵圣典": {"迷途之书": 2, "古树木材": 3}
+};
+
+// Basic materials (no recipe, directly farmable)
+const basicMaterials = new Set(["猛禽之爪","松树木材","星之实","毒之晶簇","清晨露水"]);
+
+// Material tier order (for display grouping)
+const materialTiers = {
+  "初级材料": ["猛禽之爪","松树木材","星之实","毒之晶簇","清晨露水"],
+  "中级材料": ["兽王之爪","古树木材","月之实","夜之晶簇","玫瑰纯露"],
+  "普通高级材料": ["魔兽之爪","圣树木材","阳之实","混沌之晶簇","精灵纯露"],
+  "稀有高级材料": ["白幻鹿角","羽髓晶翅","迷幻金粉","异变獠牙","茉莉精油","占卜钳","灰狼毛皮","双头尾羽","蜘蛛黏丝","迷途之书"],
+  "传说材料": ["独角兽角","狮鹫之翼","炙热晶矿","神象牙骨","圣树精油","烈阳之钳","魔熊棕皮","不死鸟尾羽","纯金细丝","卡莱茵圣典"],
+  "特殊材料": ["晶花原石"]
+};
+
+const typeNames = {
+  hp: '优先HP属性',
+  atk: '优先ATK属性',
+  bal: '综合（平均）属性'
+};
+
+// ============ STATE ============
+let selectedType = null;
+let targetStage = 2; // slider value: 2-12 = reach level N (need stages 1..N-1), 13 = max (all 12 stages)
+let currentDiffs = {}; // stores the latest diff results for conversion
+
+// ============ WAREHOUSE ============
+function getWarehouse() {
+  try {
+    return JSON.parse(localStorage.getItem('nucalc_warehouse') || '{}');
+  } catch { return {}; }
+}
+function saveWarehouse(wh) {
+  localStorage.setItem('nucalc_warehouse', JSON.stringify(wh));
+}
+
+function buildWarehouseUI() {
+  const container = document.getElementById('warehouse-groups');
+  const wh = getWarehouse();
+  let html = '';
+
+  for (const [tierName, materials] of Object.entries(materialTiers)) {
+    html += '<div class="material-group">';
+    html += `<div class="material-group-header" onclick="toggleGroup(this)">${tierName} <span class="arrow">▼</span></div>`;
+    html += '<div class="material-group-body">';
+    for (const mat of materials) {
+      const val = wh[mat] !== undefined ? wh[mat] : '';
+      html += `<div class="material-item"><label title="${mat}">${mat}</label><input type="number" min="0" value="${val}" data-mat="${mat}" placeholder="0" onchange="onWarehouseChange(this)"></div>`;
+    }
+    html += '</div></div>';
+  }
+
+  container.innerHTML = html;
+}
+
+function onWarehouseChange(input) {
+  const mat = input.dataset.mat;
+  const val = parseInt(input.value) || 0;
+  const wh = getWarehouse();
+  if (val <= 0) {
+    delete wh[mat];
+    input.value = '';
+  } else {
+    wh[mat] = val;
+  }
+  saveWarehouse(wh);
+  // Hide old conversion results
+  document.getElementById('panel4').style.display = 'none';
+  // Recalculate if type selected
+  if (selectedType) calculate();
+}
+
+function toggleGroup(header) {
+  header.classList.toggle('collapsed');
+  header.nextElementSibling.classList.toggle('collapsed');
+}
+
+function expandAll() {
+  document.querySelectorAll('.material-group-header').forEach(h => h.classList.remove('collapsed'));
+  document.querySelectorAll('.material-group-body').forEach(b => b.classList.remove('collapsed'));
+}
+
+function collapseAll() {
+  document.querySelectorAll('.material-group-header').forEach(h => h.classList.add('collapsed'));
+  document.querySelectorAll('.material-group-body').forEach(b => b.classList.add('collapsed'));
+}
+
+function clearWarehouse() {
+  if (confirm('确定要清空所有仓库数据吗？此操作不可恢复。')) {
+    localStorage.removeItem('nucalc_warehouse');
+    buildWarehouseUI();
+    if (selectedType) calculate();
+  }
+}
+
+// ============ TYPE SELECTION ============
+function buildTypeSelector() {
+  const container = document.getElementById('type-selector');
+  let html = '';
+  for (const [key, name] of Object.entries(typeNames)) {
+    html += `<button class="type-btn${selectedType === key ? ' active' : ''}" data-type="${key}" onclick="selectType('${key}')">${name}</button>`;
+  }
+  container.innerHTML = html;
+}
+
+function formatStage(n) {
+  if (n >= 13) return 'max（满潜）';
+  return `${n}级潜力`;
+}
+
+function formatBubble(n) {
+  if (n >= 13) return 'max';
+  return String(n);
+}
+
+function getStageCount(sliderVal) {
+  if (sliderVal >= 13) return 12;
+  return sliderVal - 1;
+}
+
+function updateBubble(val) {
+  const slider = document.getElementById('stage-slider');
+  const bubble = document.getElementById('slider-bubble');
+  const min = parseInt(slider.min);
+  const max = parseInt(slider.max);
+  const pct = ((val - min) / (max - min)) * 100;
+  bubble.style.left = pct + '%';
+  bubble.textContent = formatBubble(val);
+}
+
+function refreshDisplay(val) {
+  document.getElementById('stage-label').textContent = formatStage(val);
+  document.getElementById('stage-input').value = val;
+  updateBubble(val);
+}
+
+// Real-time drag: update display only, no calculation
+function onSliderDrag(val) {
+  refreshDisplay(parseInt(val));
+}
+
+// On release: update + calculate
+function updateStage(val) {
+  targetStage = parseInt(val);
+  document.getElementById('panel4').style.display = 'none';
+  refreshDisplay(targetStage);
+  if (selectedType) calculate();
+}
+
+function selectType(type) {
+  selectedType = type;
+  document.getElementById('panel4').style.display = 'none';
+  buildTypeSelector();
+  refreshDisplay(targetStage);
+  calculate();
+}
+
+function onStageInput(val) {
+  let n = parseInt(val);
+  if (isNaN(n) || n < 2) n = 2;
+  if (n > 13) n = 13;
+  targetStage = n;
+  document.getElementById('stage-slider').value = n;
+  document.getElementById('panel4').style.display = 'none';
+  refreshDisplay(targetStage);
+  if (selectedType) calculate();
+}
+
+// ============ CALCULATION ============
+function calculate() {
+  if (!selectedType) return;
+
+  // Sum requirements from stage 1 to targetStage (converted from slider value)
+  const stageCount = getStageCount(targetStage);
+  const stages = stagesData[selectedType];
+  const required = {};
+  for (let i = 0; i < stageCount; i++) {
+    const stage = stages[i];
+    for (const [mat, count] of Object.entries(stage)) {
+      const name = normalizeName(mat);
+      required[name] = (required[name] || 0) + count;
+    }
+  }
+
+  // Get warehouse
+  const wh = getWarehouse();
+
+  // Calculate diffs
+  const allMats = new Set([...Object.keys(required), ...Object.keys(wh)]);
+  const diffs = {};
+  for (const mat of allMats) {
+    const need = required[mat] || 0;
+    const have = wh[mat] || 0;
+    diffs[mat] = have - need; // positive = surplus, negative = deficit
+  }
+  currentDiffs = diffs;
+
+  renderResults(required, wh, diffs);
+  // Scroll to results on mobile
+  document.getElementById('panel3').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function renderResults(required, wh, diffs) {
+  const area = document.getElementById('result-area');
+  const convertSection = document.getElementById('convert-section');
+  const panel4 = document.getElementById('panel4');
+
+  // Collect all materials involved
+  const allMats = [...new Set([...Object.keys(required), ...Object.keys(wh)])];
+
+  // Separate into deficit, surplus, zero
+  const deficitMats = allMats.filter(m => diffs[m] < 0).sort((a,b) => diffs[a] - diffs[b]);
+  const surplusMats = allMats.filter(m => diffs[m] > 0).sort((a,b) => diffs[b] - diffs[a]);
+  const zeroMats = allMats.filter(m => diffs[m] === 0).sort();
+
+  const sorted = [...deficitMats, ...surplusMats, ...zeroMats];
+
+  if (sorted.length === 0) {
+    area.innerHTML = '<div class="empty-state"><div class="emoji">📋</div><p>该阶段暂无材料需求</p></div>';
+    convertSection.style.display = 'none';
+    panel4.style.display = 'none';
+    return;
+  }
+
+  let html = '<div class="result-table-wrapper"><table class="result-table"><thead><tr><th class="col-name">材料</th><th class="col-need">需求</th><th class="col-have">库存</th><th class="col-diff">差值</th></tr></thead><tbody>';
+
+  for (const mat of sorted) {
+    const need = required[mat] || 0;
+    const have = wh[mat] || 0;
+    const diff = diffs[mat];
+    let rowClass = '', badgeHtml = '';
+    if (diff < 0) {
+      rowClass = 'row-deficit';
+      badgeHtml = `<span class="diff-badge deficit">缺 ${Math.abs(diff)}</span>`;
+    } else if (diff > 0) {
+      rowClass = 'row-surplus';
+      badgeHtml = `<span class="diff-badge surplus">余 ${diff}</span>`;
+    } else {
+      rowClass = 'row-zero';
+      badgeHtml = `<span class="diff-badge zero">✓</span>`;
+    }
+    html += `<tr class="${rowClass}"><td class="col-name">${mat}</td><td class="col-need">${need}</td><td class="col-have">${have}</td><td class="col-diff">${badgeHtml}</td></tr>`;
+  }
+
+  html += '</tbody></table></div>';
+  area.innerHTML = html;
+
+  // Show/hide convert button
+  if (deficitMats.length > 0) {
+    convertSection.style.display = 'block';
+  } else {
+    convertSection.style.display = 'none';
+    panel4.style.display = 'none';
+  }
+}
+
+// ============ CONVERSION ============
+function doConvert() {
+  if (!currentDiffs || Object.keys(currentDiffs).length === 0) return;
+
+  // Start with required amounts (positive values = need to acquire)
+  // For materials with deficit, we need abs(diff) of them
+  // For materials with surplus, we have extra (can offset)
+  const needMap = {}; // positive = need this many
+  const extraMap = {}; // positive = have this many extra
+
+  for (const [mat, diff] of Object.entries(currentDiffs)) {
+    if (diff < 0) {
+      needMap[mat] = Math.abs(diff);
+    } else if (diff > 0) {
+      extraMap[mat] = diff;
+    }
+  }
+
+  // Process from highest tier down: try to satisfy needs by breaking down
+  // We'll recursively break down non-basic materials
+  // Order matters: process legendaries first, then rare, etc.
+  const tierOrder = [
+    ["独角兽角","狮鹫之翼","炙热晶矿","神象牙骨","圣树精油","烈阳之钳","魔熊棕皮","不死鸟尾羽","纯金细丝","卡莱茵圣典"],
+    ["白幻鹿角","羽髓晶翅","迷幻金粉","异变獠牙","茉莉精油","占卜钳","灰狼毛皮","双头尾羽","蜘蛛黏丝","迷途之书"],
+    ["魔兽之爪","圣树木材","阳之实","混沌之晶簇","精灵纯露"],
+    ["兽王之爪","古树木材","月之实","夜之晶簇","玫瑰纯露"]
+  ];
+
+  // Go through each tier, break down materials that have needs
+  for (const tier of tierOrder) {
+    for (const mat of tier) {
+      if (needMap[mat] && needMap[mat] > 0) {
+        // First, use any extra of this material we have
+        if (extraMap[mat] && extraMap[mat] > 0) {
+          const use = Math.min(needMap[mat], extraMap[mat]);
+          needMap[mat] -= use;
+          extraMap[mat] -= use;
+        }
+
+        if (needMap[mat] > 0 && recipes[mat]) {
+          const recipe = recipes[mat];
+          const batches = Math.ceil(needMap[mat]);
+          for (const [ing, ingCount] of Object.entries(recipe)) {
+            const totalIngNeed = ingCount * batches;
+            needMap[ing] = (needMap[ing] || 0) + totalIngNeed;
+          }
+          // The need for this material is now covered by synthesis
+          // But keep any remaining need (should be 0 after batches)
+          // Actually, we might produce more than needed (batches * 1 >= needMap[mat])
+          // The extra produced can be noted but we don't track it here
+          delete needMap[mat];
+        }
+      }
+    }
+  }
+
+  // Similarly break down any remaining non-basic needs
+  // (Some might have been added from higher tiers)
+  for (const tier of tierOrder) {
+    for (const mat of tier) {
+      if (needMap[mat] && needMap[mat] > 0 && recipes[mat]) {
+        if (extraMap[mat] && extraMap[mat] > 0) {
+          const use = Math.min(needMap[mat], extraMap[mat]);
+          needMap[mat] -= use;
+          extraMap[mat] -= use;
+        }
+        if (needMap[mat] > 0) {
+          const recipe = recipes[mat];
+          const batches = Math.ceil(needMap[mat]);
+          for (const [ing, ingCount] of Object.entries(recipe)) {
+            needMap[ing] = (needMap[ing] || 0) + ingCount * batches;
+          }
+          delete needMap[mat];
+        }
+      }
+    }
+  }
+
+  // After breakdown, we should only have basic materials + 晶花原石
+  // Also, any remaining extra of higher tier materials could be broken down to offset...
+  // But the user's requirement is simple: show what basic materials to farm
+  // So we just show basic material needs
+
+  // Collect results
+  const basicNeeds = {};
+  const otherNeeds = {};
+
+  for (const [mat, count] of Object.entries(needMap)) {
+    if (count > 0) {
+      // Subtract any extra of this material the user already has
+      const extra = extraMap[mat] || 0;
+      const netNeed = Math.max(0, count - extra);
+      if (netNeed > 0) {
+        if (basicMaterials.has(mat)) {
+          basicNeeds[mat] = netNeed;
+        } else {
+          otherNeeds[mat] = netNeed;
+        }
+      }
+    }
+  }
+
+  // Render panel 4
+  const panel4 = document.getElementById('panel4');
+  const area = document.getElementById('convert-result-area');
+  panel4.style.display = 'block';
+
+  const allResults = {...basicNeeds, ...otherNeeds};
+
+  if (Object.keys(allResults).length === 0) {
+    area.innerHTML = '<div class="empty-state"><div class="emoji">✅</div><p>无需额外刷取材料！当前库存足够覆盖所有合成需求</p></div>';
+    return;
+  }
+
+  let html = '';
+  // Basic materials first
+  for (const [mat, count] of Object.entries(basicNeeds)) {
+    html += `<div class="convert-result-item"><span class="mat-name">${mat}</span><span class="mat-count">需要 ${count} 个</span></div>`;
+  }
+  // Other (晶花原石 etc.)
+  for (const [mat, count] of Object.entries(otherNeeds)) {
+    html += `<div class="convert-result-item"><span class="mat-name">⚠️ ${mat}（无法合成）</span><span class="mat-count">需要 ${count} 个</span></div>`;
+  }
+
+  if (Object.keys(otherNeeds).length > 0) {
+    html += '<div class="convert-note">⚠️ 以上标注"无法合成"的材料需要通过游戏内活动/爬塔/关卡奖励等途径获取，无法通过合成获得。</div>';
+  }
+
+  html += '<div class="convert-note" style="margin-top:8px;background:#EFF6FF;color:#1D4ED8;border-color:#BFDBFE;">💡 提示：以上初级材料需求已包含合成所有赤字材料所需的全部原料。建议优先刷取需求量最大的材料。</div>';
+
+  area.innerHTML = html;
+  panel4.scrollIntoView({ behavior: 'smooth' });
+}
+
+// ============ INIT ============
+function init() {
+  buildWarehouseUI();
+  buildTypeSelector();
+  updateBubble(targetStage);
+}
+
+init();
+</script>
+
+</body>
+</html>

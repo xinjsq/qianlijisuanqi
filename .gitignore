@@ -1,0 +1,5 @@
+# 临时文件，无需上传
+*.pyc
+__pycache__/
+sheet*.json
+*.xlsx
