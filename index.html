@@ -307,6 +307,17 @@ body {
 .result-table .col-need { width: 15%; }
 .result-table .col-have { width: 15%; }
 .result-table .col-diff { width: 28%; }
+/* Tier separator & header rows */
+.result-table .tier-separator td { border-top: 3px solid #9CA3AF; }
+.result-table .tier-header td {
+  padding: 10px 6px 4px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #374151;
+  background: #F9FAFB;
+  border-bottom: 2px solid #D1D5DB;
+  text-align: left;
+}
 
 /* Convert button area */
 .convert-section { text-align: center; margin: 20px 0; }
@@ -397,6 +408,7 @@ body {
   .result-table td { padding: 6px 2px; }
   .result-table .col-need, .result-table .col-have { width: 13%; }
   .result-table .col-diff { width: 26%; }
+  .result-table .tier-header td { font-size: 0.72rem; padding: 8px 4px 3px; }
   .result-table .diff-badge { padding: 1px 6px; font-size: 0.72rem; border-radius: 8px; }
 
   /* Convert button */
@@ -854,7 +866,7 @@ function renderResults(required, wh, diffs) {
 
   let html = '<div class="result-table-wrapper"><table class="result-table"><thead><tr><th class="col-name">材料</th><th class="col-need">需求</th><th class="col-have">库存</th><th class="col-diff">差值</th></tr></thead><tbody>';
 
-  for (const mat of sorted) {
+  function renderRow(mat) {
     const need = required[mat] || 0;
     const have = wh[mat] || 0;
     const diff = diffs[mat];
@@ -869,7 +881,30 @@ function renderResults(required, wh, diffs) {
       rowClass = 'row-zero';
       badgeHtml = `<span class="diff-badge zero">✓</span>`;
     }
-    html += `<tr class="${rowClass}"><td class="col-name">${mat}</td><td class="col-need">${need}</td><td class="col-have">${have}</td><td class="col-diff">${badgeHtml}</td></tr>`;
+    return `<tr class="${rowClass}"><td class="col-name">${mat}</td><td class="col-need">${need}</td><td class="col-have">${have}</td><td class="col-diff">${badgeHtml}</td></tr>`;
+  }
+
+  if (sortMode === 'deficit') {
+    // Flat list, no tier grouping
+    for (const mat of sorted) {
+      html += renderRow(mat);
+    }
+  } else {
+    // Default: grouped by tier with headers and separators
+    const tierLabels = Object.keys(materialTiers);
+    let firstTier = true;
+    for (const tierName of tierLabels) {
+      const tierMats = sorted.filter(m => materialTiers[tierName].includes(m));
+      if (tierMats.length === 0) continue;
+      if (!firstTier) {
+        html += `<tr class="tier-separator"><td colspan="4"></td></tr>`;
+      }
+      firstTier = false;
+      html += `<tr class="tier-header"><td colspan="4">${tierName}</td></tr>`;
+      for (const mat of tierMats) {
+        html += renderRow(mat);
+      }
+    }
   }
 
   html += '</tbody></table></div>';
