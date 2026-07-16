@@ -6,16 +6,17 @@
 <title>NU Carnival 角色潜力升级材料计算器</title>
 <style>
 :root {
-  --blue: #3B82F6;
-  --blue-light: #EFF6FF;
-  --blue-dark: #1D4ED8;
-  --red: #DC2626;
-  --red-bg: #FEE2E2;
-  --green: #16A34A;
-  --green-bg: #D1FAE5;
-  --gray: #6B7280;
-  --gray-light: #F3F4F6;
-  --gray-border: #E5E7EB;
+  --brown: #A0724A;
+  --brown-light: #FDF8F2;
+  --brown-dark: #5C3D2E;
+  --brown-pale: #F5EDE3;
+  --red: #C0392B;
+  --red-bg: #FBE9E7;
+  --green: #5D8A3C;
+  --green-bg: #EFF5E7;
+  --gray: #7B6E64;
+  --gray-light: #F7F4F0;
+  --gray-border: #E0D8CF;
   --radius: 12px;
   --radius-sm: 8px;
 }
@@ -24,7 +25,7 @@
 
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", "Hiragino Sans GB", sans-serif;
-  background: #F0F4F8;
+  background: var(--brown-pale);
   color: #1F2937;
   line-height: 1.6;
   min-height: 100vh;
@@ -38,13 +39,13 @@ body {
 
 /* Header */
 .header {
-  background: linear-gradient(135deg, #1E3A5F, #2563EB);
+  background: linear-gradient(135deg, #3E2216, #7A5230);
   color: white;
   text-align: center;
   padding: 28px 20px;
   border-radius: var(--radius);
   margin-bottom: 16px;
-  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+  box-shadow: 0 4px 12px rgba(122, 82, 48, 0.25);
 }
 .header h1 { font-size: 1.5rem; font-weight: 800; letter-spacing: 0.05em; }
 .header p { font-size: 0.85rem; opacity: 0.85; }
@@ -61,17 +62,17 @@ body {
 .card-title {
   font-size: 1.05rem;
   font-weight: 700;
-  color: #1E3A5F;
+  color: var(--brown-dark);
   margin-bottom: 14px;
   padding-bottom: 10px;
-  border-bottom: 2px solid var(--blue-light);
+  border-bottom: 2px solid var(--brown-light);
   display: flex;
   align-items: center;
   gap: 8px;
 }
 .card-title .icon {
   width: 28px; height: 28px;
-  background: var(--blue);
+  background: var(--brown);
   color: white;
   border-radius: 6px;
   display: flex;
@@ -149,8 +150,8 @@ body {
 }
 .material-item input:focus {
   outline: none;
-  border-color: var(--blue);
-  box-shadow: 0 0 0 2px rgba(59,130,246,0.15);
+  border-color: var(--brown);
+  box-shadow: 0 0 0 2px rgba(160,114,74,0.2);
 }
 
 /* Buttons */
@@ -165,16 +166,16 @@ body {
   transition: all 0.15s;
   font-family: inherit;
 }
-.btn-blue { background: var(--blue); color: white; }
-.btn-blue:hover { background: var(--blue-dark); }
-.btn-outline { background: white; color: var(--blue); border: 1px solid var(--blue); }
-.btn-outline:hover { background: var(--blue-light); }
+.btn-blue { background: var(--brown); color: white; }
+.btn-blue:hover { background: var(--brown-dark); }
+.btn-outline { background: white; color: var(--brown); border: 1px solid var(--brown); }
+.btn-outline:hover { background: var(--brown-light); }
 .btn-ghost { background: transparent; color: var(--gray); }
 .btn-ghost:hover { background: var(--gray-light); }
 
 /* Type tip box */
 .type-tip {
-  background: #2563EB;
+  background: var(--brown-dark);
   color: white;
   padding: 10px 14px;
   border-radius: var(--radius-sm);
@@ -198,8 +199,8 @@ body {
   font-family: inherit;
   color: #374151;
 }
-.type-btn:hover { border-color: var(--blue); background: var(--blue-light); }
-.type-btn.active { border-color: var(--blue); background: var(--blue-light); color: var(--blue); }
+.type-btn:hover { border-color: var(--brown); background: var(--brown-light); }
+.type-btn.active { border-color: var(--brown); background: var(--brown-light); color: var(--brown); }
 
 /* Stage / Range inputs */
 .stage-selector { margin-top: 14px; }
@@ -209,16 +210,16 @@ body {
   display: flex; flex-direction: column; align-items: center; gap: 4px;
 }
 .range-label { font-size: 0.75rem; color: #6B7280; font-weight: 500; }
-.range-arrow { font-size: 1.2rem; color: var(--blue); font-weight: 700; }
+.range-arrow { font-size: 1.2rem; color: var(--brown); font-weight: 700; }
 .range-hint { font-size: 0.75rem; color: #9CA3AF; }
 .range-item input {
   width: 64px; padding: 8px 6px;
   border: 1px solid var(--gray-border);
   border-radius: 8px; font-size: 1rem; text-align: center;
-  font-family: inherit; font-weight: 700; color: #1E3A5F;
+  font-family: inherit; font-weight: 700; color: var(--brown-dark);
   min-height: 40px;
 }
-.range-item input:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 2px rgba(59,130,246,0.15); }
+.range-item input:focus { outline: none; border-color: var(--brown); box-shadow: 0 0 0 2px rgba(160,114,74,0.2); }
 
 /* Sort buttons */
 .sort-row { display: flex; gap: 8px; margin-bottom: 12px; }
@@ -234,8 +235,8 @@ body {
   color: #374151;
   transition: all 0.15s;
 }
-.sort-btn:hover { border-color: var(--blue); }
-.sort-btn.active { background: var(--blue); color: white; border-color: var(--blue); }
+.sort-btn:hover { border-color: var(--brown); }
+.sort-btn.active { background: var(--brown); color: white; border-color: var(--brown); }
 
 /* Results table */
 .result-table-wrapper { overflow-x: visible; margin: 0; padding: 0; }
@@ -1005,7 +1006,7 @@ function doConvert() {
     html += '<div class="convert-note">⚠️ 特殊材料「晶花原石」不可合成，仅可通过活动奖励 / 爬塔奖励 / 忘却遗迹等方式获取。</div>';
   }
 
-  html += '<div class="convert-note" style="margin-top:8px;background:#EFF6FF;color:#1D4ED8;border-color:#BFDBFE;">💡 提示：以上初级材料需求已包含合成所有赤字材料所需的全部原料。建议优先刷取需求量最大的材料。</div>';
+  html += '<div class="convert-note" style="margin-top:8px;background:#FDF8F2;color:#7A5230;border-color:#E0D0BE;">💡 提示：以上初级材料需求已包含合成所有赤字材料所需的全部原料。建议优先刷取需求量最大的材料。</div>';
 
   area.innerHTML = html;
   panel4.scrollIntoView({ behavior: 'smooth' });
