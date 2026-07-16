@@ -457,15 +457,16 @@ body {
       <div class="range-inputs">
         <div class="range-item">
           <span class="range-label">初始潜力等级</span>
-          <input type="number" id="stage-from" min="1" max="12" value="1" onchange="onRangeChange()">
+          <input type="number" id="stage-from" min="1" max="12" value="1">
         </div>
         <span class="range-arrow">→</span>
         <div class="range-item">
           <span class="range-label">目标潜力等级</span>
-          <input type="number" id="stage-to" min="2" max="13" value="2" onchange="onRangeChange()" placeholder="max=13">
+          <input type="number" id="stage-to" min="2" max="13" value="2" placeholder="max=13">
         </div>
-        <span class="range-hint" id="range-hint">（输入13=满潜max）</span>
+        <button class="btn btn-blue" onclick="onRangeChange()" style="height:40px;align-self:flex-end;">开始计算</button>
       </div>
+      <span class="range-hint" id="range-hint" style="margin-top:8px;display:inline-block;">（输入13=满潜max）</span>
     </div>
   </div>
 
