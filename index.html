@@ -826,13 +826,13 @@ function renderResults(required, wh, diffs) {
   tierOrder.forEach((m, i) => { tierIdx[m] = i; });
 
   // Sort by tier order or deficit severity
+  const deficitMats = allMats.filter(m => diffs[m] < 0);
   let sorted;
   if (sortMode === 'deficit') {
     // Group: deficit (most negative first) → surplus (most positive first) → zero (tier order)
-    const deficitMats = allMats.filter(m => diffs[m] < 0).sort((a,b) => diffs[a] - diffs[b]);
     const surplusMats = allMats.filter(m => diffs[m] > 0).sort((a,b) => diffs[b] - diffs[a]);
     const zeroMats = allMats.filter(m => diffs[m] === 0).sort((a,b) => (tierIdx[a]||99) - (tierIdx[b]||99));
-    sorted = [...deficitMats, ...surplusMats, ...zeroMats];
+    sorted = [...deficitMats.sort((a,b) => diffs[a] - diffs[b]), ...surplusMats, ...zeroMats];
   } else {
     // Default: strict tier order, all materials together
     sorted = [...allMats].sort((a,b) => (tierIdx[a]||99) - (tierIdx[b]||99));
