@@ -528,7 +528,7 @@ body {
       ⚡ 一键转换：缺少的材料 → 初级材料需求量
     </button>
     <div class="btn-row" style="justify-content:center;margin-top:10px;">
-      <button class="btn btn-outline" id="btn-continue" onclick="continueNext()" style="display:none;">🔄 继续培养下一个</button>
+      <button class="btn btn-outline" id="btn-apply" onclick="applyResult()">📥 应用数据到仓库</button>
     </div>
   </div>
 
@@ -1015,27 +1015,27 @@ function renderResults(required, wh, diffs) {
   // Show/hide convert button and apply/continue buttons
   convertSection.style.display = 'block';
   document.getElementById('btn-convert').style.display = deficitMats.length > 0 ? 'inline-block' : 'none';
-  const roundStageTo = rounds[currentRound] ? rounds[currentRound].stageTo : stageTo;
-  document.getElementById('btn-continue').style.display = (deficitMats.length === 0 && roundStageTo < 13 && currentRound === rounds.length - 1) ? 'inline-block' : 'none';
   if (deficitMats.length === 0) panel4.style.display = 'none';
 }
 
-// ============ CONTINUE ============
-function continueNext() {
-  // Use current surplus as the new warehouse
+// ============ APPLY ============
+function applyResult() {
+  if (!confirm('应用后仓库数据将被更改，请确认')) return;
   const r = rounds[currentRound];
-  const newWh = {};
-  for (const [mat, diff] of Object.entries(r.diffs)) {
-    if (diff > 0) newWh[mat] = diff;
+  const wh = getWarehouse();
+  for (const [mat, need] of Object.entries(r.required)) {
+    const name = normalizeName(mat);
+    wh[name] = Math.max(0, (wh[name] || 0) - need);
   }
-  saveWarehouse(newWh);
+  saveWarehouse(wh);
   buildWarehouseUI();
-  // Reset target stage for next round
-  document.getElementById('stage-from').value = r.stageTo >= 13 ? 12 : r.stageTo;
-  document.getElementById('stage-to').value = r.stageTo >= 13 ? 13 : Math.min(r.stageTo + 1, 13);
-  stageFrom = r.stageTo >= 13 ? 12 : r.stageTo;
-  stageTo = r.stageTo >= 13 ? 13 : Math.min(r.stageTo + 1, 13);
+  rounds = [];
+  currentRound = 0;
+  document.getElementById('result-area').innerHTML = '<div class="empty-state"><div class="emoji">✅</div><p>数据已应用到仓库</p></div>';
+  document.getElementById('convert-section').style.display = 'none';
   document.getElementById('panel4').style.display = 'none';
+  document.getElementById('sort-btns').style.display = 'none';
+  document.getElementById('round-tabs').style.display = 'none';
   document.getElementById('panel1').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
