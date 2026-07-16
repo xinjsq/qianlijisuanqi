@@ -221,6 +221,38 @@ body {
 }
 .range-item input:focus { outline: none; border-color: var(--brown); box-shadow: 0 0 0 2px rgba(160,114,74,0.2); }
 
+/* Plan bar */
+.plan-bar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.plan-tab {
+  padding: 6px 16px; border-radius: 20px; border: 1px solid var(--gray-border);
+  background: white; font-size: 0.82rem; font-weight: 600; cursor: pointer;
+  font-family: inherit; color: #374151; transition: all 0.15s;
+}
+.plan-tab:hover { border-color: var(--brown); }
+.plan-tab.active { background: var(--brown); color: white; border-color: var(--brown); }
+.plan-tab .del-plan { margin-left: 6px; opacity: 0.5; font-size: 0.75rem; }
+.plan-tab .del-plan:hover { opacity: 1; }
+.plan-add {
+  width: 32px; height: 32px; border-radius: 50%; border: 2px dashed var(--gray-border);
+  background: white; font-size: 1.2rem; cursor: pointer; color: #9CA3AF;
+  display: flex; align-items: center; justify-content: center; transition: all 0.15s;
+}
+.plan-add:hover { border-color: var(--brown); color: var(--brown); }
+
+/* Round tabs */
+.round-tabs { display: flex; gap: 6px; margin-bottom: 10px; flex-wrap: wrap; align-items: center; }
+.round-tab {
+  padding: 4px 14px; border-radius: 16px; border: 1px solid var(--gray-border);
+  background: white; font-size: 0.78rem; font-weight: 600; cursor: pointer;
+  font-family: inherit; color: #374151; transition: all 0.15s;
+}
+.round-tab:hover { border-color: var(--brown); }
+.round-tab.active { background: var(--brown); color: white; border-color: var(--brown); }
+.round-tab .del-round {
+  margin-left: 4px; cursor: pointer; font-size: 0.7rem; opacity: 0.6;
+}
+.round-tab .del-round:hover { opacity: 1; }
+
 /* Sort buttons */
 .sort-row { display: flex; gap: 8px; margin-bottom: 12px; }
 .sort-btn {
@@ -446,6 +478,12 @@ body {
     </div>
   </div>
 
+  <!-- 方案选择 -->
+  <div class="card" id="plan-card">
+    <div class="card-title"><span class="icon">📋</span> 方案管理</div>
+    <div class="plan-bar" id="plan-bar"></div>
+  </div>
+
   <!-- 板块二：角色选择 -->
   <div class="card" id="panel2">
     <div class="card-title"><span class="icon">二</span> 选择养成目标</div>
@@ -474,6 +512,7 @@ body {
   <!-- 板块三：计算结果 -->
   <div class="card" id="panel3">
     <div class="card-title"><span class="icon">三</span> 材料需求计算结果</div>
+    <div id="round-tabs" class="round-tabs" style="display:none;"></div>
     <div id="sort-btns" class="sort-row" style="display:none;">
       <button class="sort-btn active" onclick="setSort('default')">📋 默认排序</button>
       <button class="sort-btn" onclick="setSort('deficit')">🔴 缺少优先</button>
@@ -483,11 +522,15 @@ body {
     </div>
   </div>
 
-  <!-- 一键转换 -->
+  <!-- 操作按钮区 -->
   <div class="convert-section" id="convert-section" style="display:none;">
     <button class="btn-convert" id="btn-convert" onclick="doConvert()">
       ⚡ 一键转换：缺少的材料 → 初级材料需求量
     </button>
+    <div class="btn-row" style="justify-content:center;margin-top:10px;">
+      <button class="btn btn-outline" id="btn-apply" onclick="applyResult()" style="display:none;">📥 应用该数据到仓库</button>
+      <button class="btn btn-outline" id="btn-continue" onclick="continueNext()" style="display:none;">🔄 继续培养下一个</button>
+    </div>
   </div>
 
   <!-- 板块四：转换结果 -->
@@ -616,21 +659,84 @@ const typeNames = {
 
 // ============ STATE ============
 let selectedType = null;
-let stageFrom = 1; // initial potential level (default 1)
-let stageTo = 2;   // target potential level (2-12 = level N, 13 = max/full potential)
-let currentDiffs = {}; // stores the latest diff results for conversion
-let sortMode = 'default'; // 'default' = tier order, 'deficit' = most deficit first
+let stageFrom = 1;
+let stageTo = 2;
+let currentDiffs = {};
+let sortMode = 'default';
+let currentPlan = 0;
+let rounds = [];       // [{required, wh, diffs, stageFrom, stageTo, type}, ...]
+let currentRound = 0;
 
-// ============ WAREHOUSE ============
-function getWarehouse() {
+// ============ PLANS ============
+function loadPlans() {
   try {
-    return JSON.parse(localStorage.getItem('nucalc_warehouse') || '{}');
-  } catch { return {}; }
+    const raw = localStorage.getItem('nucalc_plans');
+    if (raw) return JSON.parse(raw);
+  } catch(e) {}
+  return [{name: '方案一', warehouse: {}}];
+}
+function savePlans(plans) {
+  localStorage.setItem('nucalc_plans', JSON.stringify(plans));
+}
+function getWarehouse() {
+  const plans = loadPlans();
+  if (currentPlan >= plans.length) currentPlan = 0;
+  return plans[currentPlan] ? plans[currentPlan].warehouse : {};
 }
 function saveWarehouse(wh) {
-  localStorage.setItem('nucalc_warehouse', JSON.stringify(wh));
+  const plans = loadPlans();
+  if (currentPlan < plans.length) {
+    plans[currentPlan].warehouse = wh;
+  }
+  savePlans(plans);
 }
 
+function renderPlanBar() {
+  const plans = loadPlans();
+  if (currentPlan >= plans.length) currentPlan = 0;
+  const bar = document.getElementById('plan-bar');
+  let html = '';
+  plans.forEach((p, i) => {
+    html += `<button class="plan-tab${i === currentPlan ? ' active' : ''}" onclick="switchPlan(${i})">${p.name}${plans.length > 1 ? `<span class="del-plan" onclick="event.stopPropagation();deletePlan(${i})">✕</span>` : ''}</button>`;
+  });
+  html += `<button class="plan-add" onclick="addPlan()" title="新增方案">+</button>`;
+  bar.innerHTML = html;
+}
+
+function switchPlan(i) {
+  currentPlan = i;
+  rounds = [];
+  currentRound = 0;
+  selectedType = null;
+  buildWarehouseUI();
+  buildTypeSelector();
+  renderPlanBar();
+  document.getElementById('result-area').innerHTML = '<div class="empty-state"><div class="emoji">📋</div><p>请先选择角色类型，结果将在此显示</p></div>';
+  document.getElementById('convert-section').style.display = 'none';
+  document.getElementById('panel4').style.display = 'none';
+  document.getElementById('sort-btns').style.display = 'none';
+  document.getElementById('round-tabs').style.display = 'none';
+}
+
+function addPlan() {
+  const plans = loadPlans();
+  plans.push({name: `方案${String.fromCharCode(19968 + plans.length)}`, warehouse: {}});
+  savePlans(plans);
+  currentPlan = plans.length - 1;
+  switchPlan(currentPlan);
+}
+
+function deletePlan(i) {
+  if (!confirm('确定删除该方案吗？数据不可恢复。')) return;
+  const plans = loadPlans();
+  if (plans.length <= 1) return;
+  plans.splice(i, 1);
+  savePlans(plans);
+  if (currentPlan >= plans.length) currentPlan = plans.length - 1;
+  switchPlan(currentPlan);
+}
+
+// ============ WAREHOUSE ============
 function buildWarehouseUI() {
   const container = document.getElementById('warehouse-groups');
   const wh = getWarehouse();
@@ -661,10 +767,7 @@ function onWarehouseChange(input) {
     wh[mat] = val;
   }
   saveWarehouse(wh);
-  // Hide old conversion results
   document.getElementById('panel4').style.display = 'none';
-  // Recalculate if type selected
-  if (selectedType) calculate();
 }
 
 function toggleGroup(header) {
@@ -683,10 +786,16 @@ function collapseAll() {
 }
 
 function clearWarehouse() {
-  if (confirm('确定要清空所有仓库数据吗？此操作不可恢复。')) {
-    localStorage.removeItem('nucalc_warehouse');
+  if (confirm('确定要清空当前方案的仓库数据吗？此操作不可恢复。')) {
+    saveWarehouse({});
     buildWarehouseUI();
-    if (selectedType) calculate();
+    rounds = [];
+    currentRound = 0;
+    document.getElementById('result-area').innerHTML = '<div class="empty-state"><div class="emoji">📋</div><p>请先选择角色类型，结果将在此显示</p></div>';
+    document.getElementById('convert-section').style.display = 'none';
+    document.getElementById('panel4').style.display = 'none';
+    document.getElementById('sort-btns').style.display = 'none';
+    document.getElementById('round-tabs').style.display = 'none';
   }
 }
 
@@ -709,7 +818,6 @@ function selectType(type) {
   selectedType = type;
   document.getElementById('panel4').style.display = 'none';
   buildTypeSelector();
-  calculate();
 }
 
 function onRangeChange() {
@@ -734,14 +842,59 @@ function onRangeChange() {
 }
 
 // ============ CALCULATION ============
+// ============ ROUNDS ============
+function renderRoundTabs() {
+  const tabs = document.getElementById('round-tabs');
+  if (rounds.length <= 1) { tabs.style.display = 'none'; return; }
+  tabs.style.display = 'flex';
+  let html = '';
+  rounds.forEach((r, i) => {
+    html += `<button class="round-tab${i === currentRound ? ' active' : ''}" onclick="switchRound(${i})">结果${String.fromCharCode(19968 + i)}<span class="del-round" onclick="event.stopPropagation();deleteRound(${i})" title="删除此结果">✕</span></button>`;
+  });
+  tabs.innerHTML = html;
+}
+
+function switchRound(i) {
+  currentRound = Math.min(i, rounds.length - 1);
+  const r = rounds[currentRound];
+  renderResults(r.required, r.wh, r.diffs);
+  renderRoundTabs();
+}
+
+function deleteRound(i) {
+  if (rounds.length <= 1) return;
+  if (!confirm('删除此结果将同时清除之后的所有结果，确定吗？')) return;
+  // Restore warehouse to state before this round
+  if (i > 0) {
+    saveWarehouse(rounds[i - 1].wh);
+  } else {
+    // First round: restore to original warehouse (before any calculation)
+    // We need the original wh which was replaced. Just reload.
+    saveWarehouse({});
+  }
+  rounds = rounds.slice(0, i);
+  currentRound = rounds.length - 1;
+  if (rounds.length === 0) {
+    document.getElementById('result-area').innerHTML = '<div class="empty-state"><div class="emoji">📋</div><p>请先选择角色类型，结果将在此显示</p></div>';
+    document.getElementById('convert-section').style.display = 'none';
+    document.getElementById('panel4').style.display = 'none';
+    document.getElementById('sort-btns').style.display = 'none';
+    document.getElementById('round-tabs').style.display = 'none';
+    return;
+  }
+  const r = rounds[currentRound];
+  currentDiffs = r.diffs;
+  renderResults(r.required, r.wh, r.diffs);
+  renderRoundTabs();
+}
+
+// ============ CALCULATION ============
 function calculate() {
   if (!selectedType) return;
 
   // Sum materials from stageFrom to stageTo-1
-  // stages[i] = materials for level (i+1) → level (i+2)
-  // To go from level stageFrom to stageTo: need stages[stageFrom-1] through stages[stageTo-2]
-  const endIdx = stageTo >= 13 ? 12 : stageTo - 1; // exclusive end index
-  const startIdx = stageFrom - 1; // inclusive start index
+  const endIdx = stageTo >= 13 ? 12 : stageTo - 1;
+  const startIdx = stageFrom - 1;
   const stages = stagesData[selectedType];
   const required = {};
   for (let i = startIdx; i < endIdx; i++) {
@@ -752,21 +905,22 @@ function calculate() {
     }
   }
 
-  // Get warehouse
-  const wh = getWarehouse();
-
-  // Calculate diffs
+  const wh = JSON.parse(JSON.stringify(getWarehouse())); // deep copy
   const allMats = new Set([...Object.keys(required), ...Object.keys(wh)]);
   const diffs = {};
   for (const mat of allMats) {
     const need = required[mat] || 0;
     const have = wh[mat] || 0;
-    diffs[mat] = have - need; // positive = surplus, negative = deficit
+    diffs[mat] = have - need;
   }
   currentDiffs = diffs;
 
+  // Store round result
+  rounds.push({required: JSON.parse(JSON.stringify(required)), wh: JSON.parse(JSON.stringify(wh)), diffs: {...diffs}, stageFrom, stageTo, type: selectedType});
+  currentRound = rounds.length - 1;
+
   renderResults(required, wh, diffs);
-  // Scroll to results on mobile
+  renderRoundTabs();
   document.getElementById('panel3').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
@@ -859,13 +1013,53 @@ function renderResults(required, wh, diffs) {
   html += '</tbody></table></div>';
   area.innerHTML = html;
 
-  // Show/hide convert button
-  if (deficitMats.length > 0) {
-    convertSection.style.display = 'block';
-  } else {
-    convertSection.style.display = 'none';
-    panel4.style.display = 'none';
+  // Show/hide convert button and apply/continue buttons
+  convertSection.style.display = 'block';
+  document.getElementById('btn-convert').style.display = deficitMats.length > 0 ? 'inline-block' : 'none';
+  document.getElementById('btn-apply').style.display = 'inline-block';
+  const roundStageTo = rounds[currentRound] ? rounds[currentRound].stageTo : stageTo;
+  document.getElementById('btn-continue').style.display = (deficitMats.length === 0 && roundStageTo < 13 && currentRound === rounds.length - 1) ? 'inline-block' : 'none';
+  if (deficitMats.length === 0) panel4.style.display = 'none';
+}
+
+// ============ APPLY / CONTINUE ============
+function applyResult() {
+  if (!confirm('应用后仓库数据将被更改，请确认')) return;
+  // Deduct required materials from warehouse
+  const r = rounds[currentRound];
+  const wh = getWarehouse();
+  for (const [mat, need] of Object.entries(r.required)) {
+    const name = normalizeName(mat);
+    wh[name] = Math.max(0, (wh[name] || 0) - need);
   }
+  saveWarehouse(wh);
+  buildWarehouseUI();
+  rounds = [];
+  currentRound = 0;
+  document.getElementById('result-area').innerHTML = '<div class="empty-state"><div class="emoji">✅</div><p>数据已应用到仓库</p></div>';
+  document.getElementById('convert-section').style.display = 'none';
+  document.getElementById('panel4').style.display = 'none';
+  document.getElementById('sort-btns').style.display = 'none';
+  document.getElementById('round-tabs').style.display = 'none';
+  document.getElementById('panel1').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function continueNext() {
+  // Use current surplus as the new warehouse
+  const r = rounds[currentRound];
+  const newWh = {};
+  for (const [mat, diff] of Object.entries(r.diffs)) {
+    if (diff > 0) newWh[mat] = diff;
+  }
+  saveWarehouse(newWh);
+  buildWarehouseUI();
+  // Reset target stage for next round
+  document.getElementById('stage-from').value = r.stageTo >= 13 ? 12 : r.stageTo;
+  document.getElementById('stage-to').value = r.stageTo >= 13 ? 13 : Math.min(r.stageTo + 1, 13);
+  stageFrom = r.stageTo >= 13 ? 12 : r.stageTo;
+  stageTo = r.stageTo >= 13 ? 13 : Math.min(r.stageTo + 1, 13);
+  document.getElementById('panel4').style.display = 'none';
+  document.getElementById('panel1').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 // ============ CONVERSION ============
@@ -1016,6 +1210,7 @@ function doConvert() {
 function init() {
   buildWarehouseUI();
   buildTypeSelector();
+  renderPlanBar();
 }
 
 init();
