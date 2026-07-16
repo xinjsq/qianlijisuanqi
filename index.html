@@ -250,6 +250,23 @@ body {
 }
 #stage-input:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 2px rgba(59,130,246,0.15); }
 
+/* Sort buttons */
+.sort-row { display: flex; gap: 8px; margin-bottom: 12px; }
+.sort-btn {
+  padding: 6px 14px;
+  border: 1px solid var(--gray-border);
+  border-radius: 16px;
+  background: white;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  color: #374151;
+  transition: all 0.15s;
+}
+.sort-btn:hover { border-color: var(--blue); }
+.sort-btn.active { background: var(--blue); color: white; border-color: var(--blue); }
+
 /* Results table */
 .result-table-wrapper { overflow-x: visible; margin: 0; padding: 0; }
 .result-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; table-layout: fixed; }
@@ -465,6 +482,10 @@ body {
   <!-- 板块三：计算结果 -->
   <div class="card" id="panel3">
     <div class="card-title"><span class="icon">三</span> 材料需求计算结果</div>
+    <div id="sort-btns" class="sort-row" style="display:none;">
+      <button class="sort-btn active" onclick="setSort('default')">📋 默认排序</button>
+      <button class="sort-btn" onclick="setSort('deficit')">🔴 缺少优先</button>
+    </div>
     <div id="result-area">
       <div class="empty-state"><div class="emoji">📋</div><p>请先选择角色类型，结果将在此显示</p></div>
     </div>
@@ -605,6 +626,7 @@ const typeNames = {
 let selectedType = null;
 let targetStage = 2; // slider value: 2-12 = reach level N (need stages 1..N-1), 13 = max (all 12 stages)
 let currentDiffs = {}; // stores the latest diff results for conversion
+let sortMode = 'default'; // 'default' = tier order, 'deficit' = most deficit first
 
 // ============ WAREHOUSE ============
 function getWarehouse() {
@@ -729,6 +751,11 @@ function updateStage(val) {
   if (selectedType) calculate();
 }
 
+function setSort(mode) {
+  sortMode = mode;
+  if (selectedType) calculate();
+}
+
 function selectType(type) {
   selectedType = type;
   document.getElementById('panel4').style.display = 'none';
@@ -798,17 +825,31 @@ function renderResults(required, wh, diffs) {
   const tierIdx = {};
   tierOrder.forEach((m, i) => { tierIdx[m] = i; });
 
-  // Separate into deficit, surplus, zero; sort by tier order within each group
-  const deficitMats = allMats.filter(m => diffs[m] < 0).sort((a,b) => (tierIdx[a]||99) - (tierIdx[b]||99));
-  const surplusMats = allMats.filter(m => diffs[m] > 0).sort((a,b) => (tierIdx[a]||99) - (tierIdx[b]||99));
-  const zeroMats = allMats.filter(m => diffs[m] === 0).sort((a,b) => (tierIdx[a]||99) - (tierIdx[b]||99));
+  // Separate into deficit, surplus, zero; sort by tier order or deficit severity
+  let deficitMats, surplusMats, zeroMats;
+  if (sortMode === 'deficit') {
+    deficitMats = allMats.filter(m => diffs[m] < 0).sort((a,b) => diffs[a] - diffs[b]);
+    surplusMats = allMats.filter(m => diffs[m] > 0).sort((a,b) => diffs[b] - diffs[a]);
+    zeroMats = allMats.filter(m => diffs[m] === 0).sort((a,b) => (tierIdx[a]||99) - (tierIdx[b]||99));
+  } else {
+    deficitMats = allMats.filter(m => diffs[m] < 0).sort((a,b) => (tierIdx[a]||99) - (tierIdx[b]||99));
+    surplusMats = allMats.filter(m => diffs[m] > 0).sort((a,b) => (tierIdx[a]||99) - (tierIdx[b]||99));
+    zeroMats = allMats.filter(m => diffs[m] === 0).sort((a,b) => (tierIdx[a]||99) - (tierIdx[b]||99));
+  }
 
   const sorted = [...deficitMats, ...surplusMats, ...zeroMats];
+
+  // Show sort buttons and set active state
+  const sortBtns = document.getElementById('sort-btns');
+  sortBtns.style.display = 'flex';
+  sortBtns.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
+  sortBtns.querySelector(sortMode === 'default' ? '.sort-btn:first-child' : '.sort-btn:last-child').classList.add('active');
 
   if (sorted.length === 0) {
     area.innerHTML = '<div class="empty-state"><div class="emoji">📋</div><p>该阶段暂无材料需求</p></div>';
     convertSection.style.display = 'none';
     panel4.style.display = 'none';
+    document.getElementById('sort-btns').style.display = 'none';
     return;
   }
 
