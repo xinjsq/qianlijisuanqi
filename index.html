@@ -462,6 +462,11 @@ body {
   <div class="card" id="panel1">
     <div class="card-title"><span class="icon">一</span> 仓库材料库存</div>
     <p style="font-size:0.82rem;color:#6B7280;margin-bottom:12px;">请填写你仓库中已有的材料数量，数据会自动保存</p>
+    <div class="btn-row" style="margin-bottom:12px;">
+      <button class="btn btn-outline" onclick="expandAll()">展开全部</button>
+      <button class="btn btn-outline" onclick="collapseAll()">折叠全部</button>
+      <button class="btn btn-ghost" onclick="clearWarehouse()">清空仓库</button>
+    </div>
     <div id="warehouse-groups"></div>
     <div class="btn-row">
       <button class="btn btn-outline" onclick="expandAll()">展开全部</button>
