@@ -201,54 +201,24 @@ body {
 .type-btn:hover { border-color: var(--blue); background: var(--blue-light); }
 .type-btn.active { border-color: var(--blue); background: var(--blue-light); color: var(--blue); }
 
-/* Stage slider */
+/* Stage / Range inputs */
 .stage-selector { margin-top: 14px; }
-.stage-selector label { font-size: 0.9rem; font-weight: 600; color: #374151; display: block; margin-bottom: 8px; }
-.stage-slider-wrapper { display: flex; align-items: center; gap: 10px; }
-.slider-track-wrap { flex: 1; position: relative; padding-top: 22px; }
-.stage-slider-wrapper input[type="range"] { width: 100%; accent-color: var(--blue); height: 6px; margin: 0; }
-.slider-bubble {
-  position: absolute;
-  top: 0;
-  transform: translateX(-50%);
-  background: var(--blue);
-  color: white;
-  min-width: 32px;
-  height: 24px;
-  line-height: 24px;
-  text-align: center;
-  border-radius: 12px;
-  font-size: 0.75rem;
-  font-weight: 700;
-  padding: 0 6px;
-  white-space: nowrap;
-  pointer-events: none;
-  transition: left 0.05s linear;
+.stage-selector > label { font-size: 0.9rem; font-weight: 600; color: #374151; display: block; margin-bottom: 10px; }
+.range-inputs { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.range-item {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
 }
-.slider-bubble::after {
-  content: '';
-  position: absolute;
-  bottom: -5px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 0;
-  height: 0;
-  border-left: 5px solid transparent;
-  border-right: 5px solid transparent;
-  border-top: 5px solid var(--blue);
-}
-#stage-input {
-  width: 52px;
-  padding: 5px 4px;
+.range-label { font-size: 0.75rem; color: #6B7280; font-weight: 500; }
+.range-arrow { font-size: 1.2rem; color: var(--blue); font-weight: 700; }
+.range-hint { font-size: 0.75rem; color: #9CA3AF; }
+.range-item input {
+  width: 64px; padding: 8px 6px;
   border: 1px solid var(--gray-border);
-  border-radius: 6px;
-  font-size: 0.85rem;
-  text-align: center;
-  font-family: inherit;
-  min-height: 36px;
-  flex-shrink: 0;
+  border-radius: 8px; font-size: 1rem; text-align: center;
+  font-family: inherit; font-weight: 700; color: #1E3A5F;
+  min-height: 40px;
 }
-#stage-input:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 2px rgba(59,130,246,0.15); }
+.range-item input:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 2px rgba(59,130,246,0.15); }
 
 /* Sort buttons */
 .sort-row { display: flex; gap: 8px; margin-bottom: 12px; }
@@ -396,11 +366,11 @@ body {
   .type-selector { flex-direction: column; gap: 6px; }
   .type-btn { padding: 14px 12px; font-size: 0.9rem; min-width: unset; }
 
-  /* Stage slider */
-  .stage-slider-wrapper { gap: 6px; }
-  .stage-slider-wrapper input[type="range"] { height: 8px; }
-  .slider-bubble { min-width: 28px; height: 22px; line-height: 22px; font-size: 0.7rem; }
-  #stage-input { width: 44px; font-size: 0.8rem; }
+  /* Range inputs */
+  .range-inputs { gap: 6px; }
+  .range-item input { width: 56px; font-size: 0.9rem; min-height: 36px; }
+  .range-arrow { font-size: 1rem; }
+  .range-hint { font-size: 0.7rem; }
 
   /* Result table: ultra-compact for mobile */
   .result-table { font-size: 0.76rem; }
@@ -483,15 +453,18 @@ body {
     </div>
     <div class="type-selector" id="type-selector"></div>
     <div class="stage-selector">
-      <label>需要达到的潜力等级：<strong id="stage-label">2级潜力</strong></label>
-      <div class="stage-slider-wrapper">
-        <span style="font-size:0.8rem;color:#9CA3AF;">2</span>
-        <div class="slider-track-wrap">
-          <span class="slider-bubble" id="slider-bubble">2</span>
-          <input type="range" id="stage-slider" min="2" max="13" value="2" oninput="onSliderDrag(this.value)" onchange="updateStage(this.value)">
+      <label>计算潜力区间所需材料</label>
+      <div class="range-inputs">
+        <div class="range-item">
+          <span class="range-label">初始潜力等级</span>
+          <input type="number" id="stage-from" min="1" max="12" value="1" onchange="onRangeChange()">
         </div>
-        <span style="font-size:0.8rem;color:#9CA3AF;">max</span>
-        <input type="number" id="stage-input" min="2" max="13" value="2" onchange="onStageInput(this.value)" placeholder="2-13">
+        <span class="range-arrow">→</span>
+        <div class="range-item">
+          <span class="range-label">目标潜力等级</span>
+          <input type="number" id="stage-to" min="2" max="13" value="2" onchange="onRangeChange()" placeholder="max=13">
+        </div>
+        <span class="range-hint" id="range-hint">（输入13=满潜max）</span>
       </div>
     </div>
   </div>
@@ -641,7 +614,8 @@ const typeNames = {
 
 // ============ STATE ============
 let selectedType = null;
-let targetStage = 2; // slider value: 2-12 = reach level N (need stages 1..N-1), 13 = max (all 12 stages)
+let stageFrom = 1; // initial potential level (default 1)
+let stageTo = 2;   // target potential level (2-12 = level N, 13 = max/full potential)
 let currentDiffs = {}; // stores the latest diff results for conversion
 let sortMode = 'default'; // 'default' = tier order, 'deficit' = most deficit first
 
@@ -724,50 +698,6 @@ function buildTypeSelector() {
   container.innerHTML = html;
 }
 
-function formatStage(n) {
-  if (n >= 13) return 'max（满潜）';
-  return `${n}级潜力`;
-}
-
-function formatBubble(n) {
-  if (n >= 13) return 'max';
-  return String(n);
-}
-
-function getStageCount(sliderVal) {
-  if (sliderVal >= 13) return 12;
-  return sliderVal - 1;
-}
-
-function updateBubble(val) {
-  const slider = document.getElementById('stage-slider');
-  const bubble = document.getElementById('slider-bubble');
-  const min = parseInt(slider.min);
-  const max = parseInt(slider.max);
-  const pct = ((val - min) / (max - min)) * 100;
-  bubble.style.left = pct + '%';
-  bubble.textContent = formatBubble(val);
-}
-
-function refreshDisplay(val) {
-  document.getElementById('stage-label').textContent = formatStage(val);
-  document.getElementById('stage-input').value = val;
-  updateBubble(val);
-}
-
-// Real-time drag: update display only, no calculation
-function onSliderDrag(val) {
-  refreshDisplay(parseInt(val));
-}
-
-// On release: update + calculate
-function updateStage(val) {
-  targetStage = parseInt(val);
-  document.getElementById('panel4').style.display = 'none';
-  refreshDisplay(targetStage);
-  if (selectedType) calculate();
-}
-
 function setSort(mode) {
   sortMode = mode;
   if (selectedType) calculate();
@@ -777,18 +707,27 @@ function selectType(type) {
   selectedType = type;
   document.getElementById('panel4').style.display = 'none';
   buildTypeSelector();
-  refreshDisplay(targetStage);
   calculate();
 }
 
-function onStageInput(val) {
-  let n = parseInt(val);
-  if (isNaN(n) || n < 2) n = 2;
-  if (n > 13) n = 13;
-  targetStage = n;
-  document.getElementById('stage-slider').value = n;
+function onRangeChange() {
+  let from = parseInt(document.getElementById('stage-from').value);
+  let to = parseInt(document.getElementById('stage-to').value);
+
+  // Validate and clamp
+  if (isNaN(from) || from < 1) from = 1;
+  if (from > 12) from = 12;
+  if (isNaN(to) || to < 2) to = 2;
+  if (to > 13) to = 13;
+  if (to <= from) to = from + 1;
+  if (to > 13) to = 13;
+
+  stageFrom = from;
+  stageTo = to;
+  document.getElementById('stage-from').value = from;
+  document.getElementById('stage-to').value = to;
+  document.getElementById('range-hint').textContent = to === 13 ? '（已选满潜max）' : '（输入13=满潜max）';
   document.getElementById('panel4').style.display = 'none';
-  refreshDisplay(targetStage);
   if (selectedType) calculate();
 }
 
@@ -796,11 +735,14 @@ function onStageInput(val) {
 function calculate() {
   if (!selectedType) return;
 
-  // Sum requirements from stage 1 to targetStage (converted from slider value)
-  const stageCount = getStageCount(targetStage);
+  // Sum materials from stageFrom to stageTo-1
+  // stages[i] = materials for level (i+1) → level (i+2)
+  // To go from level stageFrom to stageTo: need stages[stageFrom-1] through stages[stageTo-2]
+  const endIdx = stageTo >= 13 ? 12 : stageTo - 1; // exclusive end index
+  const startIdx = stageFrom - 1; // inclusive start index
   const stages = stagesData[selectedType];
   const required = {};
-  for (let i = 0; i < stageCount; i++) {
+  for (let i = startIdx; i < endIdx; i++) {
     const stage = stages[i];
     for (const [mat, count] of Object.entries(stage)) {
       const name = normalizeName(mat);
@@ -1072,7 +1014,6 @@ function doConvert() {
 function init() {
   buildWarehouseUI();
   buildTypeSelector();
-  updateBubble(targetStage);
 }
 
 init();
