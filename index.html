@@ -825,19 +825,18 @@ function renderResults(required, wh, diffs) {
   const tierIdx = {};
   tierOrder.forEach((m, i) => { tierIdx[m] = i; });
 
-  // Separate into deficit, surplus, zero; sort by tier order or deficit severity
-  let deficitMats, surplusMats, zeroMats;
+  // Sort by tier order or deficit severity
+  let sorted;
   if (sortMode === 'deficit') {
-    deficitMats = allMats.filter(m => diffs[m] < 0).sort((a,b) => diffs[a] - diffs[b]);
-    surplusMats = allMats.filter(m => diffs[m] > 0).sort((a,b) => diffs[b] - diffs[a]);
-    zeroMats = allMats.filter(m => diffs[m] === 0).sort((a,b) => (tierIdx[a]||99) - (tierIdx[b]||99));
+    // Group: deficit (most negative first) → surplus (most positive first) → zero (tier order)
+    const deficitMats = allMats.filter(m => diffs[m] < 0).sort((a,b) => diffs[a] - diffs[b]);
+    const surplusMats = allMats.filter(m => diffs[m] > 0).sort((a,b) => diffs[b] - diffs[a]);
+    const zeroMats = allMats.filter(m => diffs[m] === 0).sort((a,b) => (tierIdx[a]||99) - (tierIdx[b]||99));
+    sorted = [...deficitMats, ...surplusMats, ...zeroMats];
   } else {
-    deficitMats = allMats.filter(m => diffs[m] < 0).sort((a,b) => (tierIdx[a]||99) - (tierIdx[b]||99));
-    surplusMats = allMats.filter(m => diffs[m] > 0).sort((a,b) => (tierIdx[a]||99) - (tierIdx[b]||99));
-    zeroMats = allMats.filter(m => diffs[m] === 0).sort((a,b) => (tierIdx[a]||99) - (tierIdx[b]||99));
+    // Default: strict tier order, all materials together
+    sorted = [...allMats].sort((a,b) => (tierIdx[a]||99) - (tierIdx[b]||99));
   }
-
-  const sorted = [...deficitMats, ...surplusMats, ...zeroMats];
 
   // Show sort buttons and set active state
   const sortBtns = document.getElementById('sort-btns');
@@ -1000,9 +999,19 @@ function doConvert() {
   }
 
   let html = '';
-  // Basic materials first
+  // Basic materials in specified order
+  const primaryOrder = materialTiers["初级材料"];
+  for (const mat of primaryOrder) {
+    const count = basicNeeds[mat];
+    if (count && count > 0) {
+      html += `<div class="convert-result-item"><span class="mat-name">${mat}</span><span class="mat-count">需要 ${count} 个</span></div>`;
+    }
+  }
+  // Any basic materials not in the primary list (shouldn't happen, but safety)
   for (const [mat, count] of Object.entries(basicNeeds)) {
-    html += `<div class="convert-result-item"><span class="mat-name">${mat}</span><span class="mat-count">需要 ${count} 个</span></div>`;
+    if (!primaryOrder.includes(mat) && count > 0) {
+      html += `<div class="convert-result-item"><span class="mat-name">${mat}</span><span class="mat-count">需要 ${count} 个</span></div>`;
+    }
   }
   // Other (晶花原石 etc.)
   for (const [mat, count] of Object.entries(otherNeeds)) {
