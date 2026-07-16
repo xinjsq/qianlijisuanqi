@@ -46,7 +46,7 @@ body {
   margin-bottom: 16px;
   box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
 }
-.header h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 4px; }
+.header h1 { font-size: 1.5rem; font-weight: 800; letter-spacing: 0.05em; }
 .header p { font-size: 0.85rem; opacity: 0.85; }
 
 /* Cards */
@@ -375,7 +375,7 @@ body {
   .app-container { padding: 10px; }
 
   .header { padding: 20px 16px; margin-bottom: 10px; border-radius: 10px; }
-  .header h1 { font-size: 1.2rem; }
+  .header h1 { font-size: 1.2rem; font-weight: 800; }
 
   .card { padding: 14px 12px; margin-bottom: 10px; border-radius: 10px; }
   .card-title { font-size: 0.95rem; margin-bottom: 10px; padding-bottom: 8px; }
@@ -428,7 +428,7 @@ body {
 }
 
 @media (max-width: 380px) {
-  .header h1 { font-size: 1.1rem; }
+  .header h1 { font-size: 1.1rem; font-weight: 800; }
   .header { padding: 16px 12px; }
   .card { padding: 12px 10px; }
   .card-title { font-size: 0.9rem; }
@@ -454,7 +454,7 @@ body {
 
   <!-- Header -->
   <div class="header">
-    <h1>🔮 NU Carnival 角色潜力升级材料计算器</h1>
+    <h1>NU Carnival 角色潜力升级材料计算器</h1>
     <p style="font-size:0.8rem;opacity:0.8;margin-top:6px;">⚠️ 本计算器只能计算SSR和SR，R卡和N卡不在范围内</p>
   </div>
 
@@ -629,9 +629,9 @@ const materialTiers = {
 };
 
 const typeNames = {
-  hp: '优先HP属性',
-  atk: '优先ATK属性',
-  bal: '综合（平均）属性'
+  hp: '优先HP型',
+  atk: '优先ATK型',
+  bal: '综合（平均）型'
 };
 
 // ============ STATE ============
@@ -1054,7 +1054,7 @@ function doConvert() {
   }
 
   if (Object.keys(otherNeeds).length > 0) {
-    html += '<div class="convert-note">⚠️ 以上标注"无法合成"的材料需要通过游戏内活动/爬塔/关卡奖励等途径获取，无法通过合成获得。</div>';
+    html += '<div class="convert-note">⚠️ 特殊材料「晶花原石」不可合成，仅可通过活动奖励 / 爬塔奖励 / 忘却遗迹等方式获取。</div>';
   }
 
   html += '<div class="convert-note" style="margin-top:8px;background:#EFF6FF;color:#1D4ED8;border-color:#BFDBFE;">💡 提示：以上初级材料需求已包含合成所有赤字材料所需的全部原料。建议优先刷取需求量最大的材料。</div>';
