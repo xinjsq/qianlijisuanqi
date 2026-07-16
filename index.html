@@ -869,10 +869,19 @@ function applyResult() {
   }
   saveWarehouse(wh);
   buildWarehouseUI();
-  document.getElementById('result-area').innerHTML = '<div class="empty-state"><div class="emoji">✅</div><p>数据已应用到仓库</p></div>';
-  document.getElementById('convert-section').style.display = 'none';
-  document.getElementById('panel4').style.display = 'none';
-  document.getElementById('sort-btns').style.display = 'none';
+
+  // Check if there were deficits
+  const hasDeficit = Object.values(currentDiffs).some(d => d < 0);
+  if (hasDeficit) {
+    // Recalculate with new warehouse to show updated result
+    calculate();
+  } else {
+    // All materials available, clear and go back to panel 1
+    document.getElementById('result-area').innerHTML = '<div class="empty-state"><div class="emoji">✅</div><p>数据已应用到仓库</p></div>';
+    document.getElementById('convert-section').style.display = 'none';
+    document.getElementById('panel4').style.display = 'none';
+    document.getElementById('sort-btns').style.display = 'none';
+  }
   document.getElementById('panel1').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
